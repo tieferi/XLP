@@ -6,7 +6,7 @@ XLP is written in Java.
 
 ## Download
 
-[XLP-1.0.1.dmg]
+[XLP-1.0.0.dmg](https://github.com/tieferi/XLP/releases/download/1.0.0/XLP-1.0.0.dmg)
 
 ## How can XLP be used?
 
@@ -24,20 +24,23 @@ Learning data is stored in Excel workbooks. An application capable of opening an
 
 ## Installation
 
-To install XLP, double-click the DMG file and drag the app onto the link to the Applications folder.
+To install XLP, double-click the DMG file and drag the app onto the Applications folder.
 
-## Documentation and Templates
+## Documentation
 
 ### English
 
-[XLP Quick Start Guide V99999999.pdf]
+[XLP Quick Start Guide V20261008.pdf](download/en/XLP%20Quick%20Start%20Guide%20V20261008.pdf)
 
 ### German
 
-[XLP Kurzanleitung V99999999.pdf]  
-[XLP Handbuch V99999999.pdf]  
-[XLP Vorlagen V99999999.pdf]  
-[XLP Vorlagen V99999999.zip]
+[XLP Kurzanleitung V20261008.pdf](download/de/XLP%20Kurzanleitung%20V20261008.pdf)  
+[XLP Handbuch V20261008.pdf](download/de/XLP%20Handbuch%20V20261008.pdf)  
+[XLP Vorlagen V20261008.pdf](download/de/XLP%20Vorlagen%20V20261008.pdf)
+
+## Templates
+
+[XLP Templates V20261008.zip](download/templates/XLP%20Templates%20V20261008.zip)
 
 ## About XLP
 
