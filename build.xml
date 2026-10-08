@@ -1,0 +1,308 @@
+<project name="build" basedir=".">
+    <property file="build.properties"/>
+    <tstamp/>
+
+    <target name="init">
+        <delete dir="${build.dir}"/>
+        <mkdir dir="${build.dir}"/>
+
+        <property name="tag" value="dev"/>
+        <echo level="info" message="tag=${tag}"/>
+        <fail message="Invalid tag">
+            <condition>
+                <not><matches string="${tag}" pattern="^(dev|rc[0-9]*|rel)$"/></not>
+            </condition>
+        </fail>
+
+        <condition property="version.name" value="${tag}-${DSTAMP}">
+            <equals arg1="${tag}" arg2="dev"/>
+        </condition>
+        <condition property="version.name" value="${app.version}-${tag}">
+            <matches string="${tag}" pattern="rc[0-9]*"/>
+        </condition>
+        <condition property="version.name" value="${app.version}">
+            <equals arg1="${tag}" arg2="rel"/>
+        </condition>
+
+        <condition property="do.notarize.and.staple">
+            <not><equals arg1="${tag}" arg2="dev"/></not>
+        </condition>
+
+        <condition property="allow.overwrite">
+            <equals arg1="${tag}" arg2="dev"/>
+        </condition>
+    </target>
+
+    <target name="compile" depends="init">
+        <mkdir dir="${build.dir}/lib"/>
+        <copy todir="${build.dir}/lib">
+            <fileset dir="lib"/>
+        </copy>
+
+        <mkdir dir="${build.dir}/out"/>
+
+        <javac srcdir="${source.dir}" destdir="${build.dir}/out" includeAntRuntime="false">
+            <classpath>
+                <fileset dir="${build.dir}/lib">
+                    <include name="*.jar"/>
+                </fileset>
+            </classpath>
+        </javac>
+
+        <copy todir="${build.dir}/out">
+            <fileset dir="${source.dir}" includes="resources/*.properties"/>
+            <filterchain>
+                <expandproperties>
+                    <propertyset>
+                        <propertyref name="version.name"/>
+                    </propertyset>
+                </expandproperties>
+            </filterchain>
+        </copy>
+
+        <copy todir="${build.dir}/out">
+            <fileset dir="${source.dir}" includes="resources/**" excludes="resources/*.properties"/>
+        </copy>
+
+        <jar destfile="${build.dir}/lib/${app.package}-${app.version}.jar">
+            <fileset dir="${build.dir}/out"/>
+        </jar>
+    </target>
+
+    <target name="package" depends="compile">
+        <exec executable="jpackage" failonerror="true">
+            <arg value="--type"/>
+            <arg value="app-image"/>
+            <arg value="--name"/>
+            <arg value="${app.name}"/>
+            <arg value="--app-version"/>
+            <arg value="${app.version}"/>
+            <arg value="--icon"/>
+            <arg value="${app.icon}"/>
+            <arg value="--input"/>
+            <arg value="${build.dir}/lib"/>
+            <arg value="--main-jar"/>
+            <arg value="${app.package}-${app.version}.jar"/>
+            <arg value="--main-class"/>
+            <arg value="${app.main.class}"/>
+            <arg value="--java-options"/>
+            <arg value="-XX:+UseZGC"/>
+            <arg value="--dest"/>
+            <arg value="${build.dir}/app"/>
+        </exec>
+    </target>
+
+    <target name="dmg" depends="package">
+        <exec executable="jpackage" failonerror="true">
+            <arg value="--type"/>
+            <arg value="dmg"/>
+            <arg value="--name"/>
+            <arg value="${app.name}"/>
+            <arg value="--app-version"/>
+            <arg value="${app.version}"/>
+            <arg value="--icon"/>
+            <arg value="${app.icon}"/>
+            <arg value="--app-image"/>
+            <arg value="${build.dir}/app/${app.name}.app"/>
+            <arg value="--dest"/>
+            <arg value="${build.dir}"/>
+        </exec>
+    </target>
+
+    <target name="make-universal" depends="dmg">
+        <delete dir="${build.dir}/app/${app.name}.app/Contents/runtime"/>
+
+        <exec executable="clang" failonerror="true">
+            <arg value="-Wall"/>
+            <arg value="-Wextra"/>
+            <arg value="-mmacosx-version-min=11.0"/>
+            <arg value="-O2"/>
+            <arg value="-arch"/>
+            <arg value="x86_64"/>
+            <arg value="-arch"/>
+            <arg value="arm64"/>
+            <arg value="-o"/>
+            <arg value="${build.dir}/app_launcher"/>
+            <arg value="app_launcher.c"/>
+        </exec>
+
+        <exec executable="file" failonerror="true">
+            <arg value="${build.dir}/app_launcher"/>
+        </exec>
+
+        <exec executable="ditto" failonerror="true">
+            <arg value="${build.dir}/app_launcher"/>
+            <arg value="${build.dir}/app/${app.name}.app/Contents/MacOS/${app.name}"/>
+        </exec>
+
+        <exec executable="ditto" failonerror="true">
+            <arg value="${jre.x86.64}"/>
+            <arg value="${build.dir}/app/${app.name}.app/Contents/jre_x86_64"/>
+        </exec>
+
+        <exec executable="ditto" failonerror="true">
+            <arg value="${jre.arm64}"/>
+            <arg value="${build.dir}/app/${app.name}.app/Contents/jre_arm64"/>
+        </exec>
+    </target>
+
+    <target name="sign" depends="make-universal">
+        <antcall target="sign-jre">
+            <param name="jre.dir"
+                   value="${build.dir}/app/${app.name}.app/Contents/jre_x86_64"/>
+        </antcall>
+
+        <antcall target="sign-jre">
+            <param name="jre.dir"
+                   value="${build.dir}/app/${app.name}.app/Contents/jre_arm64"/>
+        </antcall>
+
+        <exec executable="codesign" failonerror="true">
+            <arg value="--force"/>
+            <arg value="--timestamp"/>
+            <arg value="--options"/>
+            <arg value="runtime"/>
+            <arg value="--entitlements"/>
+            <arg value="${app.entitlements}"/>
+            <arg value="--sign"/>
+            <arg value="${codesign.identity}"/>
+            <arg value="${build.dir}/app/${app.name}.app"/>
+        </exec>
+    </target>
+
+    <target name="sign-jre">
+        <apply executable="codesign" failonerror="true">
+            <fileset dir="${jre.dir}">
+                <include name="Home/lib/jspawnhelper"/>
+                <include name="Home/lib/**/*.dylib"/>
+                <exclude name="Home/lib/server/libjvm.dylib"/>
+                <include name="Home/bin/*"/>
+                <exclude name="Home/bin/java"/>
+                <include name="MacOS/libjli.dylib"/>
+            </fileset>
+            <arg value="--force"/>
+            <arg value="--timestamp"/>
+            <arg value="--options"/>
+            <arg value="runtime"/>
+            <arg value="--sign"/>
+            <arg value="${codesign.identity}"/>
+        </apply>
+
+        <apply executable="codesign" failonerror="true">
+            <fileset dir="${jre.dir}">
+                <include name="Home/lib/server/libjvm.dylib"/>
+                <include name="Home/bin/java"/>
+            </fileset>
+            <arg value="--force"/>
+            <arg value="--timestamp"/>
+            <arg value="--options"/>
+            <arg value="runtime"/>
+            <arg value="--entitlements"/>
+            <arg value="${jre.entitlements}"/>
+            <arg value="--sign"/>
+            <arg value="${codesign.identity}"/>
+        </apply>
+    </target>
+
+    <target name="replace-app-in-dmg" depends="sign">
+        <move file="${build.dir}/${app.name}-${app.version}.dmg"
+              tofile="${build.dir}/${app.name}-${app.version}-jpackage.dmg"/>
+
+        <exec executable="hdiutil" failonerror="true">
+            <arg value="convert"/>
+            <arg value="${build.dir}/${app.name}-${app.version}-jpackage.dmg"/>
+            <arg value="-format"/>
+            <arg value="UDRW"/>
+            <arg value="-o"/>
+            <arg value="${build.dir}/${app.name}-${app.version}-rw.dmg"/>
+        </exec>
+
+        <exec executable="hdiutil" failonerror="true">
+            <arg value="resize"/>
+            <arg value="-size"/>
+            <arg value="500m"/>
+            <arg value="${build.dir}/${app.name}-${app.version}-rw.dmg"/>
+        </exec>
+
+        <mkdir dir="${build.dir}/dmg-mount"/>
+
+        <exec executable="hdiutil" failonerror="true">
+            <arg value="attach"/>
+            <arg value="-mountpoint"/>
+            <arg value="${build.dir}/dmg-mount"/>
+            <arg value="${build.dir}/${app.name}-${app.version}-rw.dmg"/>
+        </exec>
+
+        <exec executable="rm" failonerror="true">
+            <arg value="-rf"/>
+            <arg value="${build.dir}/dmg-mount/${app.name}.app"/>
+        </exec>
+
+        <exec executable="ditto" failonerror="true">
+            <arg value="${build.dir}/app/${app.name}.app"/>
+            <arg value="${build.dir}/dmg-mount/${app.name}.app"/>
+        </exec>
+
+        <exec executable="hdiutil" failonerror="true">
+            <arg value="detach"/>
+            <arg value="${build.dir}/dmg-mount"/>
+        </exec>
+
+        <exec executable="hdiutil" failonerror="true">
+            <arg value="convert"/>
+            <arg value="${build.dir}/${app.name}-${app.version}-rw.dmg"/>
+            <arg value="-format"/>
+            <arg value="UDZO"/>
+            <arg value="-o"/>
+            <arg value="${build.dir}/${app.name}-${app.version}.dmg"/>
+        </exec>
+
+        <delete dir="${build.dir}/dmg-mount"/>
+        <delete file="${build.dir}/${app.name}-${app.version}-rw.dmg"/>
+        <delete file="${build.dir}/${app.name}-${app.version}-jpackage.dmg"/>
+    </target>
+
+    <target name="notarize" depends="replace-app-in-dmg" if="do.notarize.and.staple">
+        <exec executable="xcrun" failonerror="true">
+            <arg value="notarytool"/>
+            <arg value="submit"/>
+            <arg value="${build.dir}/${app.name}-${app.version}.dmg"/>
+            <arg value="--keychain-profile"/>
+            <arg value="${notarization.keychain.profile}"/>
+            <arg value="--wait"/>
+        </exec>
+    </target>
+
+    <target name="staple" depends="notarize" if="do.notarize.and.staple">
+        <exec executable="xcrun" failonerror="true">
+            <arg value="stapler"/>
+            <arg value="staple"/>
+            <arg value="${build.dir}/${app.name}-${app.version}.dmg"/>
+        </exec>
+
+        <exec executable="xcrun" failonerror="true">
+            <arg value="stapler"/>
+            <arg value="validate"/>
+            <arg value="${build.dir}/${app.name}-${app.version}.dmg"/>
+        </exec>
+    </target>
+
+    <target name="publish" depends="staple" if="target.dir">
+        <property name="dmg.name" value="${app.name}-${version.name}.dmg"/>
+        <fail message="File ${dmg.name} is already published">
+            <condition>
+                <and>
+                    <available file="${target.dir}/${dmg.name}"/>
+                    <not><isset property="allow.overwrite"/></not>
+                </and>
+            </condition>
+        </fail>
+        <copy file="${build.dir}/${app.name}-${app.version}.dmg"
+              tofile="${target.dir}/${dmg.name}"
+              overwrite="true"/>
+    </target>
+
+    <target name="clean">
+        <delete dir="${build.dir}"/>
+    </target>
+</project>

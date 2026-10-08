@@ -1,0 +1,11 @@
+### IntelliJ IDEA ###
+.idea/
+*.iml
+out/
+
+### Build ###
+build/
+test/
+
+### Mac OS ###
+.DS_Store

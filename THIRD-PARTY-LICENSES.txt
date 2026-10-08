@@ -1,0 +1,75 @@
+# Third-party software included in XLP
+
+XLP includes the following third-party libraries.
+
+## Apache License 2.0
+
+The following libraries are distributed under the Apache License, Version 2.0:
+
+commons-codec 1.13
+commons-collections4 4.4
+commons-compress 1.19
+commons-math3 3.6.1
+poi 4.1.1
+poi-ooxml 4.1.1
+poi-ooxml-schemas 4.1.1
+xmlbeans 3.1.0
+
+The corresponding license text is included in the respective JAR files.
+
+The Apache projects may also contain additional copyright and attribution
+notices. These notices are retained in the respective JAR files where
+provided.
+
+## BSD-3-Clause
+
+curvesapi 1.06
+
+Copyright (c) 2005, Graph Builder.
+
+The following license applies:
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of Graph Builder nor the names of its contributors may
+   be used to endorse or promote products derived from this software without
+   specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+## CDDL 1.1 / GPLv2 with Classpath Exception
+
+The following libraries are distributed under the Common Development and
+Distribution License (CDDL), Version 1.1, or the GNU General Public License,
+Version 2 with the Classpath Exception:
+
+javax.json 1.1.4
+javax.json-api 1.1.4
+
+Copyright (c) 2011-2018 Oracle and/or its affiliates. All rights reserved.
+
+The license terms and the original license notices are provided by the
+respective projects.
+
+## License sources
+
+The license information for the third-party libraries is documented by
+their respective projects and Maven Central metadata.
